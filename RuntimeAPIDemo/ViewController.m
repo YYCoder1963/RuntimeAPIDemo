@@ -20,18 +20,19 @@
 
 - (void)viewDidLoad {
     [super viewDidLoad];
-    [self ivarApplication];
     // Do any additional setup after loading the view, typically from a nib.
+    [self replaceMethod];
+    
+}
+
+- (void)jsonToModel {
     NSDictionary *json = @{@"id" : @11,
                            @"age" : @22,
                            @"sex" : @"男"
                            };
     Person *person = [Person yy_objectWithJson:json];
     NSLog(@"%@",person);
-    [self getIvarInformation];
-    
 }
-
 
 #pragma mark --- Class Relevant API
 
@@ -84,7 +85,79 @@
     free(ivars);
 }
 
+/**
+ 设置私有属性
+ */
+- (void)ivarApplication {
+    [self.textField setValue:[UIColor blueColor] forKeyPath:@"_placeholderLabel.textColor"];
+}
 
+#pragma mark --- Property Relevant API
+
+- (void)getProperty {
+    Person *person = [Person new];
+    person.age = 11;
+    unsigned int count;
+    objc_property_t *propertyList = class_copyPropertyList(person.class, &count);
+    for (int i = 0; i < count; i++) {
+        objc_property_t property = propertyList[i];
+        // 例：name:age--  attri:Ti,N,V_age
+        NSLog(@"\n name:%s--\n attri:%s",property_getName(property),property_getAttributes(property));
+    }
+    free(propertyList);
+}
+
+- (void)addProperty {
+    Person *person = [Person new];
+    person.age = 11;
+    
+    objc_property_attribute_t type = {"T","@\"NSString\""};
+    objc_property_attribute_t ownership = { "C", "" };
+    objc_property_attribute_t atomic = {"N",""};
+    objc_property_attribute_t ivar = {"V","_name"};
+    objc_property_attribute_t attribute[] = {type,ownership,atomic,ivar};
+    NSString *propertyName = @"name";
+    if (class_addProperty(Person.class, propertyName.UTF8String, attribute, 4)) {
+        NSLog(@"added Property");
+    }
+    unsigned int count;
+    objc_property_t *propertyList = class_copyPropertyList(person.class, &count);
+    for (int i = 0; i < count; i++) {
+        objc_property_t property = propertyList[i];
+        // 例：name:age--  attri:Ti,N,V_age
+        NSLog(@"\n name:%s--\n attri:%s",property_getName(property),property_getAttributes(property));
+    }
+
+}
+
+- (void)replaceProperty {
+    Person *person = [Person new];
+    person.age = 11;
+    
+    objc_property_attribute_t type = {"T","@\"NSString\""};
+    objc_property_attribute_t ownership = { "C", "" };
+    objc_property_attribute_t atomic = {"N",""};
+    objc_property_attribute_t ivar = {"V","_name"};
+    objc_property_attribute_t attribute[] = {type,ownership,atomic,ivar};
+    class_replaceProperty(Person.class, "age", attribute, 4);
+  
+    unsigned int count;
+    objc_property_t *propertyList = class_copyPropertyList(person.class, &count);
+    for (int i = 0; i < count; i++) {
+        objc_property_t property = propertyList[i];
+        // 例：name:age--  attri:Ti,N,V_age
+        NSLog(@"\n name:%s--\n attri:%s",property_getName(property),property_getAttributes(property));
+    }
+    
+}
+
+#pragma mark --- Method Relevant API
+
+- (void)getMethod {
+    Method classMethod = class_getClassMethod(NSString.class, @selector(string));
+    Method instanceMethod = class_getInstanceMethod(NSString.class, @selector(length));
+    [self copyMethodList:NSString.class];
+}
 
 - (void)exchageMethod {
     Person *person = [Person new];
@@ -96,11 +169,36 @@
     [person exchangeMethod];
 }
 
-/**
- 设置私有属性
- */
-- (void)ivarApplication {
-    [self.textField setValue:[UIColor blueColor] forKeyPath:@"_placeholderLabel.textColor"];
+- (void)addMethod {
+    SEL sel = NSSelectorFromString(@"beBetter");
+    Method method = class_getInstanceMethod(self.class, sel);
+    IMP imp = method_getImplementation(method);
+    class_addMethod(Person.class,sel, imp, "v@:");
+    [self copyMethodList:Person.class];
 }
 
+- (void)replaceMethod {
+    SEL sel = NSSelectorFromString(@"beBetter");
+    Method method = class_getInstanceMethod(self.class, sel);
+    IMP imp = method_getImplementation(method);
+    class_replaceMethod(Person.class,NSSelectorFromString(@"growUp"), imp, "v@:");
+    Person *person = [Person new];
+    [person growUp];
+}
+
+
+- (void)beBetter {
+    NSLog(@"%s",__func__);
+}
+
+- (void)copyMethodList:(Class)class {
+    unsigned int count;
+    Method *methodList = class_copyMethodList(class, &count);
+    for (int i = 0; i < count; i++) {
+        Method method = methodList[i];
+        NSLog(@"\n %@ \n %p ",NSStringFromSelector(method_getName(method)) ,
+              method_getImplementation(method));
+    }
+    free(methodList);
+}
 @end
